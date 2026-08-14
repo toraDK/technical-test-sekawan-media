@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\ActivityLogHelper;
+use App\Models\Booking;
 use App\Models\BookingApproval;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -11,12 +12,15 @@ use Illuminate\Support\Facades\DB;
 class ApprovalController extends Controller
 {
     /**
-     * Menampilkan daftar antrean approval untuk user yang sedang login
+     * Menampilkan daftar pengajuan booking yang perlu disetujui oleh user yang login.
      */
     public function index()
     {
+        $userId = Auth::id();
+
+        // Ambil approval yang ditugaskan ke user login
         $approvals = BookingApproval::with(['booking.vehicle', 'booking.driver', 'booking.admin'])
-            ->where('approver_id', Auth::id())
+            ->where('approver_id', $userId)
             ->latest()
             ->paginate(10);
 
@@ -24,87 +28,68 @@ class ApprovalController extends Controller
     }
 
     /**
-     * Memproses Persetujuan / Penolakan Berjenjang
+     * Memproses Persetujuan (Approve) atau Penolakan (Reject).
      */
     public function process(Request $request, $id)
     {
-        $actorName = Auth::user()?->name ?? 'System';
-
         $request->validate([
             'action' => 'required|in:approved,rejected',
-            'notes'  => 'nullable|string|max:255',
+            'note'   => 'nullable|string|max:255',
         ]);
 
-        $approval = BookingApproval::with('booking')->findOrFail($id);
+        $approval = BookingApproval::where('id', $id)
+            ->where('approver_id', Auth::id())
+            ->firstOrFail();
 
-        // Keamanan: Cek apakah user yang login benar-benar approver yang ditunjuk
-        if ($approval->approver_id !== Auth::id()) {
-            return back()->with('error', 'Anda tidak berhak memproses persetujuan ini.');
-        }
+        $booking = $approval->booking;
 
-        // Cek jika status approval ini sudah diproses sebelumnya
-        if ($approval->status !== 'pending') {
-            return back()->with('error', 'Persetujuan ini sudah pernah diproses.');
-        }
-
-        // Validasi Berjenjang: Level 2 TIDAK BISA diproses jika Level 1 belum Approved
+        // Validasi: Level 2 tidak bisa memproses jika Level 1 belum menyetujui
         if ($approval->level == 2) {
-            $level1 = BookingApproval::where('booking_id', $approval->booking_id)
+            $level1 = BookingApproval::where('booking_id', $booking->id)
                 ->where('level', 1)
                 ->first();
 
-            if (!$level1 || $level1->status !== 'approved') {
-                return back()->with('error', 'Persetujuan Level 1 harus disetujui terlebih dahulu.');
+            if ($level1 && $level1->status !== 'approved') {
+                return back()->with('error', 'Penyetujui Level 1 belum menyetujui pemesanan ini.');
             }
         }
 
         DB::beginTransaction();
         try {
-            $booking = $approval->booking;
-
-            // Update status record approval saat ini
+            // Update status approval
             $approval->update([
-                'status'    => $request->action,
-                'notes'     => $request->notes,
-                'action_at' => now(),
+                'status' => $request->action,
+                'note'   => $request->note,
             ]);
 
-            if ($request->action === 'rejected') {
-                // JIKA REJECTED: Otomatis membatalkan pemesanan secara keseluruhan
+            $approverName = Auth::user()->name;
+            $actionText = $request->action == 'approved' ? 'menyetujui' : 'menolak';
+
+            // Catat activity log
+            ActivityLogHelper::log(
+                'APPROVAL_ACTION',
+                "Penyetujui Lvl {$approval->level} ({$approverName}) {$actionText} pemesanan [{$booking->booking_code}]."
+            );
+
+            // Cek kondisi status utama Booking
+            if ($request->action == 'rejected') {
+                // Jika salah satu menolak, booking langsung REJECTED
                 $booking->update(['status' => 'rejected']);
-
-                ActivityLogHelper::log(
-                    'REJECT_BOOKING',
-                    "User {$actorName} MENOLAK pemesanan [{$booking->booking_code}] pada Level {$approval->level}. Alasan: " . ($request->notes ?? '-')
-                );
             } else {
-                // JIKA APPROVED
-                if ($approval->level == 1) {
-                    // Update status booking ke partially_approved
-                    $booking->update(['status' => 'partially_approved']);
+                // Cek apakah semua level sudah menyetujui
+                $allApproved = BookingApproval::where('booking_id', $booking->id)
+                    ->where('status', '!=', 'approved')
+                    ->doesntExist();
 
-                    ActivityLogHelper::log(
-                        'APPROVE_LEVEL_1',
-                        "User {$actorName} MENYETUJUI pemesanan [{$booking->booking_code}] (Level 1)."
-                    );
-                } elseif ($approval->level == 2) {
-                    // Level 2 Approved -> Pemesanan Resmi Disetujui Sepenuhnya
+                if ($allApproved) {
                     $booking->update(['status' => 'approved']);
-
-                    // Update status kendaraan menjadi 'in_use'
-                    $booking->vehicle()->update(['status' => 'in_use']);
-
-                    ActivityLogHelper::log(
-                        'APPROVE_LEVEL_2',
-                        "User {$actorName} MENYETUJUI pemesanan [{$booking->booking_code}] (Level 2 Final). Status kendaraan diubah menjadi 'in_use'."
-                    );
                 }
             }
 
             DB::commit();
 
             return redirect()->route('approvals.index')
-                ->with('success', 'Status pemesanan berhasil diperbarui.');
+                ->with('success', "Berhasil {$actionText} pengajuan pemesanan.");
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Gagal memproses persetujuan: ' . $e->getMessage());

@@ -33,7 +33,11 @@
                             Pemesanan
                         </a>
                     </li>
-                    {{-- Tambahkan menu lain di sini jika ada, contoh: Approvals, Reports, dll --}}
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('approvals.*') ? 'active' : '' }}" href="{{ route('approvals.index') }}">
+                            Persetujuan
+                        </a>
+                    </li>
                 </ul>
 
                 <!-- User Profile / Logout -->
