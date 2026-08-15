@@ -12,6 +12,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Exports\BookingsExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class BookingController extends Controller
 {
@@ -94,5 +96,10 @@ class BookingController extends Controller
             DB::rollBack();
             return back()->with('error', 'Gagal membuat pemesanan: ' . $e->getMessage());
         }
+    }
+
+    public function export()
+    {
+        return Excel::download(new BookingsExport, 'daftar-pemesanan-kendaraan_' . date('Y-m-d') . '.xlsx');
     }
 }
