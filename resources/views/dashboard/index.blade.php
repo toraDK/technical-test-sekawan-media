@@ -91,6 +91,23 @@
 
     </div>
 
+    {{-- Vehicle Usage Chart --}}
+    <div class="mb-8 rounded-2xl border border-slate-800 bg-slate-900/90 p-6 shadow-2xl backdrop-blur-xl">
+        <div class="mb-5 flex items-center justify-between">
+            <div>
+                <h2 class="text-lg font-semibold text-white">Grafik Pemakaian Kendaraan</h2>
+                <p class="text-xs text-slate-400">Jumlah pemesanan kendaraan dalam 6 bulan terakhir.</p>
+            </div>
+            <span class="rounded-md border border-slate-700 bg-slate-950/70 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-slate-400">
+                6 Bulan
+            </span>
+        </div>
+
+        <div class="h-72 w-full">
+            <canvas id="vehicleUsageChart"></canvas>
+        </div>
+    </div>
+
     {{-- Recent Bookings Table --}}
     <div class="rounded-2xl border border-slate-800 bg-slate-900/90 shadow-2xl backdrop-blur-xl">
         <div class="flex items-center justify-between border-b border-slate-800 px-6 py-4">
@@ -151,4 +168,71 @@
     </div>
 
 </div>
+
+@push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script>
+        (() => {
+            const canvas = document.getElementById('vehicleUsageChart');
+            if (!canvas || typeof Chart === 'undefined') {
+                return;
+            }
+
+            const labels = @json($usageChartLabels ?? []);
+            const dataPoints = @json($usageChartData ?? []);
+
+            new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Jumlah Pemakaian',
+                        data: dataPoints,
+                        borderColor: '#38bdf8',
+                        backgroundColor: 'rgba(56, 189, 248, 0.15)',
+                        pointBackgroundColor: '#0ea5e9',
+                        pointBorderColor: '#e2e8f0',
+                        pointHoverBackgroundColor: '#bae6fd',
+                        pointRadius: 4,
+                        pointHoverRadius: 5,
+                        borderWidth: 2,
+                        tension: 0.35,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#cbd5e1'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(148, 163, 184, 0.12)'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0,
+                                color: '#94a3b8'
+                            },
+                            grid: {
+                                color: 'rgba(148, 163, 184, 0.12)'
+                            }
+                        }
+                    }
+                }
+            });
+        })();
+    </script>
+@endpush
 @endsection
