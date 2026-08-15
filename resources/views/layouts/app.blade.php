@@ -9,6 +9,9 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 
+    <!-- Alpine.js CDN (Tambahkan baris ini) -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
     <!-- Google Fonts Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,6 +21,10 @@
         body {
             font-family: 'Inter', sans-serif;
         }
+        /* Mencegah kerdipan menu sebelum Alpine.js loaded */
+        [x-cloak] { 
+            display: none !important; 
+        }
     </style>
 
     @stack('styles')
@@ -25,7 +32,7 @@
 <body class="flex flex-col min-h-full bg-slate-950 text-white antialiased">
 
     <!-- Sticky Frosted Navbar -->
-    <header class="sticky top-0 z-50 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md transition-all">
+    <header x-data="{ open: false }" class="sticky top-0 z-50 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md transition-all">
         <div class="mx-auto max-w-7xl px-6 lg:px-8">
             <nav class="flex h-20 items-center justify-between">
                 
@@ -42,7 +49,7 @@
                     </div>
                 </a>
 
-                {{-- Navigation --}}
+                {{-- Desktop Navigation --}}
                 @auth
                 <div class="hidden items-center gap-8 md:flex">
                     <a href="{{ route('dashboard') }}" 
@@ -60,14 +67,15 @@
                 </div>
                 @endauth
 
-                {{-- User Action --}}
-                <div class="flex items-center gap-4">
+                {{-- Desktop User Action & Hamburger Toggle --}}
+                <div class="flex items-center gap-3">
                     @auth
-                    <div class="relative flex items-center gap-3 border-l border-slate-800 pl-4">
+                    {{-- Desktop User Info & Logout --}}
+                    <div class="hidden items-center gap-3 border-l border-slate-800 pl-4 md:flex">
                         <div class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-blue-400">
                             {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
                         </div>
-                        <span class="text-sm font-medium text-slate-200 hidden sm:inline">{{ Auth::user()->name }}</span>
+                        <span class="text-sm font-medium text-slate-200">{{ Auth::user()->name }}</span>
 
                         <form action="{{ route('logout') }}" method="POST" class="inline">
                             @csrf
@@ -76,6 +84,19 @@
                             </button>
                         </form>
                     </div>
+
+                    {{-- Mobile Hamburger Button --}}
+                    <button @click="open = !open" type="button" class="inline-flex items-center justify-center rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white focus:outline-none md:hidden" aria-controls="mobile-menu" aria-expanded="false">
+                        <span class="sr-only">Open main menu</span>
+                        <!-- Icon Hamburger -->
+                        <svg x-show="!open" class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                        <!-- Icon Close (X) -->
+                        <svg x-show="open" class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" x-cloak>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
                     @else
                     <a href="{{ route('login') }}" class="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-200">
                         Masuk
@@ -85,6 +106,54 @@
 
             </nav>
         </div>
+
+        {{-- Mobile Dropdown Menu --}}
+        @auth
+        <div x-show="open" 
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 -translate-y-2"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100 translate-y-0"
+             x-transition:leave-end="opacity-0 -translate-y-2"
+             @click.away="open = false"
+             class="border-b border-slate-800 bg-slate-950 px-6 pb-6 pt-2 md:hidden" 
+             id="mobile-menu" 
+             x-cloak>
+            <div class="space-y-1">
+                <a href="{{ route('dashboard') }}" 
+                   class="block rounded-lg px-3 py-2 text-base font-medium transition {{ request()->routeIs('dashboard') ? 'bg-slate-900 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                    Dashboard
+                </a>
+                <a href="{{ route('bookings.index') }}" 
+                   class="block rounded-lg px-3 py-2 text-base font-medium transition {{ request()->routeIs('bookings.*') ? 'bg-slate-900 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                    Pemesanan
+                </a>
+                <a href="{{ route('approvals.index') }}" 
+                   class="block rounded-lg px-3 py-2 text-base font-medium transition {{ request()->routeIs('approvals.*') ? 'bg-slate-900 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                    Persetujuan
+                </a>
+            </div>
+
+            {{-- Mobile User Profile & Logout --}}
+            <div class="mt-4 border-t border-slate-800 pt-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-blue-400">
+                            {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
+                        </div>
+                        <span class="text-sm font-medium text-slate-200">{{ Auth::user()->name }}</span>
+                    </div>
+                    <form action="{{ route('logout') }}" method="POST">
+                        @csrf
+                        <button type="submit" class="rounded-lg border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-red-400 transition hover:bg-slate-800 hover:text-red-300">
+                            Logout
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        @endauth
     </header>
 
     <!-- Main Content -->

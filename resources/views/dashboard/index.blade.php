@@ -103,8 +103,8 @@
             </a>
         </div>
         
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm text-slate-300">
+        <div class="w-full overflow-x-auto overscroll-x-contain">
+            <table class="min-w-max w-full text-left text-sm text-slate-300">
                 <thead class="border-b border-slate-800 bg-slate-950/60 text-xs uppercase tracking-wider text-slate-400">
                     <tr>
                         <th scope="col" class="px-6 py-4">Kode</th>

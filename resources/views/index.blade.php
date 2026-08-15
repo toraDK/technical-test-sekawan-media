@@ -9,6 +9,9 @@
     <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 
+    <!-- AlpineJS for mobile navbar toggle -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
     <link
         rel="preconnect"
         href="https://fonts.googleapis.com"
@@ -29,6 +32,10 @@
         body {
             font-family: 'Inter', sans-serif;
         }
+
+        [x-cloak] {
+            display: none !important;
+        }
     </style>
 </head>
 
@@ -38,115 +45,145 @@
         NAVBAR
     ====================================================== --}}
 
-    <header class="fixed inset-x-0 top-0 z-50 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md transition-all">
+    <header x-data="{ open: false }" class="sticky top-0 z-50 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md transition-all" @keydown.escape.window="open = false">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+            <nav class="flex h-20 items-center justify-between">
+                
+                {{-- Logo --}}
+                <a href="/" class="flex items-center gap-3">
+                    <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600">
+                        <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 17h14M7 17V9l5-4 5 4v8M9 17v-3h6v3"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <span class="text-lg font-bold tracking-tight text-white">FleetCore</span>
+                        <span class="ml-2 hidden text-xs text-slate-400 sm:inline">Fleet Management</span>
+                    </div>
+                </a>
 
-    <div class="mx-auto max-w-7xl px-6 lg:px-8">
-
-        <nav class="flex h-20 items-center justify-between">
-
-            {{-- Logo --}}
-
-            <a href="/" class="flex items-center gap-3">
-
-                <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600">
-                    <svg
-                        class="h-5 w-5 text-white"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M5 17h14M7 17V9l5-4 5 4v8M9 17v-3h6v3"
-                        />
-                    </svg>
+                {{-- Desktop Navigation Links --}}
+                <div class="hidden items-center gap-8 md:flex">
+                    <a href="#features" class="text-sm font-medium text-slate-300 transition hover:text-white">
+                        Fitur
+                    </a>
+                    <a href="#workflow" class="text-sm font-medium text-slate-300 transition hover:text-white">
+                        Workflow
+                    </a>
+                    <a href="#about" class="text-sm font-medium text-slate-300 transition hover:text-white">
+                        Tentang Sistem
+                    </a>
                 </div>
 
-                <div>
-                    <span class="text-lg font-bold tracking-tight text-white">
-                        FleetCore
-                    </span>
+                {{-- Auth Section & Hamburger Toggle --}}
+                <div class="flex items-center gap-3 sm:gap-4">
+                    @auth
+                        {{-- Tampilan saat User SUDAH Login (Desktop) --}}
+                        <div class="hidden items-center gap-3 border-l border-slate-800 pl-4 md:flex">
+                            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-blue-400">
+                                {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
+                            </div>
+                            <span class="text-sm font-medium text-slate-200">
+                                {{ Auth::user()->name }}
+                            </span>
+                            
+                            <a href="{{ route('dashboard') }}" class="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-500">
+                                Dashboard
+                            </a>
 
-                    <span class="ml-2 hidden text-xs text-slate-400 sm:inline">
-                        Fleet Management
-                    </span>
+                            <form action="{{ route('logout') }}" method="POST" class="inline">
+                                @csrf
+                                <button type="submit" class="rounded-lg border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-red-400 transition hover:bg-slate-800 hover:text-red-300">
+                                    Logout
+                                </button>
+                            </form>
+                        </div>
+                    @else
+                        {{-- Tampilan saat User BELUM Login --}}
+                        <a href="{{ route('login') }}" class="hidden rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-200 md:inline-flex">
+                            Masuk
+                        </a>
+                    @endauth
+
+                    {{-- Mobile Hamburger Button --}}
+                    <button @click="open = !open" type="button" class="inline-flex items-center justify-center rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white focus:outline-none md:hidden" aria-controls="mobile-menu" :aria-expanded="open" aria-label="Toggle navigation menu">
+                        <span class="sr-only">Open main menu</span>
+                        
+                        <!-- Icon Hamburger -->
+                        <svg x-show="!open" class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                        
+                        <!-- Icon Close (X) -->
+                        <svg x-show="open" x-cloak class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
                 </div>
 
-            </a>
+            </nav>
+        </div>
 
-
-            {{-- Navigation Links --}}
-
-            <div class="hidden items-center gap-8 md:flex">
-
-                <a
-                    href="#features"
-                    class="text-sm font-medium text-slate-300 transition hover:text-white"
-                >
+        {{-- Mobile Dropdown Menu (Floating Menu dengan Absolute Positioning) --}}
+        <div x-show="open" 
+            x-cloak
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 -translate-y-2"
+            x-transition:enter-end="opacity-100 translate-y-0"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100 translate-y-0"
+            x-transition:leave-end="opacity-0 -translate-y-2"
+            @click.away="open = false"
+            class="absolute inset-x-0 top-full border-b border-slate-800 bg-slate-950/95 px-6 pb-6 pt-3 shadow-2xl backdrop-blur-xl md:hidden"
+            id="mobile-menu">
+            
+            <div class="space-y-1">
+                <a href="#features" @click="open = false" class="block rounded-lg px-3 py-2 text-base font-medium text-slate-300 transition hover:bg-slate-800/60 hover:text-white">
                     Fitur
                 </a>
-
-                <a
-                    href="#workflow"
-                    class="text-sm font-medium text-slate-300 transition hover:text-white"
-                >
+                <a href="#workflow" @click="open = false" class="block rounded-lg px-3 py-2 text-base font-medium text-slate-300 transition hover:bg-slate-800/60 hover:text-white">
                     Workflow
                 </a>
-
-                <a
-                    href="#about"
-                    class="text-sm font-medium text-slate-300 transition hover:text-white"
-                >
+                <a href="#about" @click="open = false" class="block rounded-lg px-3 py-2 text-base font-medium text-slate-300 transition hover:bg-slate-800/60 hover:text-white">
                     Tentang Sistem
                 </a>
-
             </div>
 
-
-            {{-- Auth Section --}}
-
-            <div class="flex items-center gap-4">
-
-                @auth
-                    {{-- Tampilan saat User SUDAH Login --}}
-                    <div class="flex items-center gap-3 border-l border-slate-800 pl-4">
-                        <div class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-blue-400">
-                            {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
-                        </div>
-
-                        <span class="hidden text-sm font-medium text-slate-200 sm:inline">
-                            {{ Auth::user()->name }}
-                        </span>
-
-                        <form action="{{ route('logout') }}" method="POST" class="inline">
-                            @csrf
-                            <button
-                                type="submit"
-                                class="rounded-lg border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-red-400 transition hover:bg-slate-800 hover:text-red-300"
-                            >
-                                Logout
-                            </button>
-                        </form>
-                    </div>
-                @else
-                    {{-- Tampilan saat User BELUM Login --}}
-                    <a
-                        href="{{ route('login') }}"
-                        class="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-200"
-                    >
+            @guest
+                <div class="mt-4 border-t border-slate-800/80 pt-4">
+                    <a href="{{ route('login') }}" @click="open = false" class="inline-flex w-full items-center justify-center rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-200">
                         Masuk
                     </a>
-                @endauth
+                </div>
+            @endguest
 
-            </div>
+            @auth
+                {{-- Mobile User Profile & Action Buttons --}}
+                <div class="mt-4 border-t border-slate-800/80 pt-4">
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-blue-400">
+                                {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
+                            </div>
+                            <span class="truncate text-sm font-medium text-slate-200">{{ Auth::user()->name }}</span>
+                        </div>
 
-        </nav>
-
-    </div>
-
-</header>
+                        <div class="grid grid-cols-2 gap-2">
+                            <a href="{{ route('dashboard') }}" @click="open = false" class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500">
+                                Dashboard
+                            </a>
+                            <form action="{{ route('logout') }}" method="POST" class="w-full">
+                                @csrf
+                                <button type="submit" class="inline-flex w-full items-center justify-center rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold text-red-400 transition hover:bg-slate-800 hover:text-red-300">
+                                    Logout
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            @endauth
+        </div>
+    </header>
 
 
 
